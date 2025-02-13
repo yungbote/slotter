@@ -4,8 +4,8 @@ import (
   "log"
   "os"
   "github.com/gin-gonic/gin"
-  "github.com/slotter/backend/services/database/internal/api"
-  "github.com/slotter/backend/services/database/internal/database"
+  "github.com/yungbote/slotter/backend/services/database/internal/api"
+  "github.com/yungbote/slotter/backend/services/database/internal/database"
 )
 
 func main() {

@@ -1,0 +1,35 @@
+version: "3.8"
+
+services:
+  # 1) Postgres container
+  db:
+    image: postgres:14
+    container_name: slotter-postgres
+    environment:
+      POSTGRES_USER: bote
+      POSTGRES_PASSWORD: bote
+      POSTGRES_DB: slotter
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # 2) Database service (your Go microservice)
+  slotter-database:
+    container_name: slotter-database
+    build:
+      context: ./services/database
+      dockerfile: Dockerfile
+    depends_on:
+      - db
+    environment:
+      # MIGRATIONS_PATH points to the path *inside* the container, from Dockerfile
+      MIGRATIONS_PATH: "/app/migrations"
+      # Use the db service name "db" and the same user/pass/db as above:
+      DATABASE_DSN: "postgres://user:pass@db:5432/mydb?sslmode=disable"
+      PORT: "8080"
+    ports:
+      - "8080:8080"
+
+volumes:
+  postgres_data:
