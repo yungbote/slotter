@@ -1,7 +1,7 @@
 # ----------------------
 # 1) BUILD STAGE
 # ----------------------
-FROM golang:1.20-alpine AS build
+FROM golang:1.22-alpine AS build
 WORKDIR /app
 
 # Copy go.mod and go.sum first, so we can cache the module downloads.

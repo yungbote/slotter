@@ -1,6 +1,8 @@
 module github.com/yungbote/slotter/backend/services/database
 
-go 1.20
+go 1.22.0
+
+toolchain go1.23.5
 
 require (
 	github.com/gin-gonic/gin v1.10.0
