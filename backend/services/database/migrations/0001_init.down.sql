@@ -1,0 +1,6 @@
+DROP TABLE IF EXISTS transactionrecord;
+DROP TABLE IF EXISTS "user";
+DROP TABLE IF EXISTS warehouse;
+DROP TABLE IF EXISTS role;
+DROP TABLE IF EXISTS company;
+
