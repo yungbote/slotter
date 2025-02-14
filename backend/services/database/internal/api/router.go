@@ -60,6 +60,7 @@ func NewRouter(db *gorm.DB) *gin.Engine {
     //User
     api.POST("/user", userHandler.CreateUser)
     api.GET("/user/:id", userHandler.GetUserByID)
+    api.GET("/user/email/:email", userHandler.GetUserByEmail)
     api.PUT("/user/:id", userHandler.UpdateUser)
     api.DELETE("/user/:id", userHandler.DeleteUser)
   }

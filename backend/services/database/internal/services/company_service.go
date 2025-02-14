@@ -26,7 +26,7 @@ func (s *companyService) CreateCompany(input *models.Company) (*models.Company, 
     return nil, fmt.Errorf("company name cannot be empty")
   }
   err := s.repo.Create(input)
-  if err := nil {
+  if err != nil {
     return nil, err
   }
   return input, nil

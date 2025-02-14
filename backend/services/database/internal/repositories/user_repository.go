@@ -22,25 +22,50 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 }
 
 func (r *userRepository) Create(user *models.User) error {
-  return r.db.Create(user).Error
-} 
+  err := r.db.Create(user).Error
+  if err != nil {
+    return ParseDBError("UserRepository.Create", err)
+  }
+  return nil
+}
 
 func (r *userRepository) GetById(id uint) (*models.User, error) {
   var u models.User
   err := r.db.First(&u, id).Error
   if errors.Is(err, gorm.ErrRecordNotFound) {
-    return nil, ErrNotFound
+
+    return nil, ParseDBError("UserRepository.GetByID", err)
   }
   if err != nil {
-    return nil, err
+    return nil, ParseDBError("UserRepository.GetByID", err)
+  }
+  return &u, nil
+}
+
+func (r *userRepository) GetByEmail(email string) (*models.User, error) {
+  var u models.User
+  err := r.db.Where("email = ?", email).First(&u).Error
+  if errors.Is(err, gorm.ErrRecordNotFound) {
+    return nil, ParseDBError("UserRepository.GetByEmail", err)
+  }
+  if err != nil {
+    return nil, ParseDBError("UserRepository.GetByEmail", err)
   }
   return &u, nil
 }
 
 func (r *userRepository) Update(user *models.User) error {
-  return r.db.Save(user).Error
+  err := r.db.Save(user).Error
+  if err != nil {
+    return ParseDBError("UserRepository.Update", err)
+  }
+  return nil
 }
 
 func(r *userRepository) Delete(user *models.User) error {
-  return r.db.Delete(user).Error
+  err := r.db.Delete(user).Error
+  if err != nil {
+    return ParseDBError("UserRepository.Delete", err)
+  }
+  return nil
 }

@@ -22,25 +22,37 @@ func NewTransactionRecordRepository(db *gorm.DB) TransactionRecordRepository {
 }
 
 func (r *transactionRecordRepository) Create(record *models.TransactionRecord) error {
-  return r.db.Create(record).Error
+  err := r.db.Create(record).Error
+  if err != nil {
+    return nil, ParseDBError("TransactionRecordRepository.Create", err)
+  }
+  return nil
 }
 
 func (r *transactionRecordRepository) GetByID(id uint) (*models.TransactionRecord, error) {
   var tr models.TransactionRecord
   err := r.db.First(&tr, id).Error
   if errors.Is(err, gorm.ErrRecordNotFound) {
-    return nil, ErrNotFound
+    return nil, ParseDBError("TransactionRecordRepository.GetByID", err)
   }
   if err != nil {
-    return nil, err
+    return nil, ParseDBError("TransactionRecordRepository.GetByID", err)
   }
   return &tr, nil
 }
 
 func (r *transactionRecordRepository) Update(record *models.TransactionRecord) error {
-  return r.db.Save(record).Error
+  err := r.db.Save(record).Error
+  if err != nil {
+    return nil, ParseDBError("TransactionRecordRepository.Update", err)
+  }
+  return nil
 }
 
 func (r *transactionRecordRepository) Delete(record *models.TransactionRecord) error {
-  return r.db.Delete(record).Error
+  err := r.db.Delete(record).Error
+  if err != nil {
+    return nil, ParseDBError("TransactionRecordRepository.Delete", err)
+  }
+  return nil
 }

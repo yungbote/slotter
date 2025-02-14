@@ -22,25 +22,37 @@ func NewWarehouseRepository(db *gorm.DB) WarehouseRepository {
 }
 
 func (r *warehouseRepository) Create(warehouse *models.Warehouse) error {
-  return r.db.Create(warehouse).Error
+  err := r.db.Create(warehouse).Error
+  if err != nil {
+    return ParseDBError("WarehouseRepository.Create", err)
+  }
+  return nil
 }
 
 func (r *warehouseRepository) GetByID(id uint) (*models.Warehouse, error) {
   var w models.Warehouse
   err := r.db.First(&w, id).Error
-  if err.Is(err, gorm.ErrRecordNotFound) {
-    return nil, ErrNotFound
+  if errors.Is(err, gorm.ErrRecordNotFound) {
+    return nil, ParseDBError("WarehouseRepository.GetByID", err)
   }
   if err != nil {
-    return nil, err
+    return nil, ParseDBError("WarehouseRepository.GetByID", err)
   }
   return &w, nil
 }
 
 func (r *warehouseRepository) Update(warehouse *models.Warehouse) (*models.Warehouse, error) {
-  return r.db.Save(warehouse).Error
+  err := r.db.Save(warehouse).Error
+  if err != nil {
+    return nil, ParseDBError("WarehouseRepository.Update", err)
+  }
+  return nil
 }
 
 func (r *warehouseRepository) Delete(warehouse *models.Warehouse) error {
-  return r.db.Delete(warehouse).Error
+  err := r.db.Delete(warehouse).Error
+  if err != nil {
+    return nil, ParseDBError("WarehouseRepository.Delete", err)
+  }
+  return nil
 }

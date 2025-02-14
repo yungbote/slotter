@@ -30,7 +30,29 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
     createdUser, err := h.service.CreateUser(&input)
     if err != nil {
         logger.GetLogger().Error("CreateUser service error", zap.Error(err))
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create user"})
+        if dErr, ok := err.(*repositories.DomainError); ok {
+            switch dErr.Code {
+            case repositories.ErrCodeValidation:
+                c.JSON(http.StatusBadRequest, gin.H{"error": dErr.Message})
+                return
+            case repositories.ErrCodeDuplicate:
+                c.JSON(http.StatusConflict, gin.H{"error": dErr.Message})
+                return
+            case repositories.ErrCodeForeignKey:
+                c.JSON(http.StatusBadRequest, gin.H{"error": dErr.Message})
+                return
+            case repositories.ErrCodeNotFound:
+                c.JSON(http.StatusNotFound, gin.H{"error": dErr.Message})
+                return
+            case repositories.ErrCodeCheckViolation:
+                c.JSON(http.StatusBadRequest, gin.H{"error": dErr.Message})
+                return
+            default:
+                c.JSON(http.StatusInternalServerError, gin.H{"error": dErr.Message})
+                return
+            }
+        }
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "could not create user"})
         return
     }
     c.JSON(http.StatusCreated, createdUser)
@@ -55,6 +77,21 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
     }
     c.JSON(http.StatusOK, user)
 }
+
+func (h *UserHandler) GetUserByEmail(c *gin.Context) {
+    email := c.Param("email")
+    user, err := h.service.GetUserByEmail(email)
+    if errors.Is(err, repositories.ErrNotFound) {
+        c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+        return
+    }
+    if err != nil {
+        logger.GetLogger().Error("GetUserByEmail service error", zap.Error(err))
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "could not fetch user"})
+        return
+    }
+    c.JSON(http.StatusOK, user)
+} 
 
 func (h *UserHandler) UpdateUser(c *gin.Context) {
     idParam := c.Param("id")

@@ -30,4 +30,18 @@ services:
       - "8080:8080"
 
 volumes:
-  postgres_data:
+postgres_data:
+  # 3) Authorization service
+  slotter-auth:
+    container_name: slotter-auth
+    build:
+      context: ./services/auth
+      dockerfile: Dockerfile
+    depends_on:
+      - db
+      - slotter-database
+    environment:
+      PORT: "8090"
+      DB_SERVICE_URL: "http://slotter-database:8080"
+    ports:
+      - "8090:8090"

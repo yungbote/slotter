@@ -21,22 +21,38 @@ func NewCompanyRepository(db *gorm.DB) CompanyRepository {
 }
 
 func (r *gormCompanyRepository) Create(company *models.Company) error {
-  return r.db.Create(company).Error
+  err := r.db.Create(company).Error
+  if err != nil {
+    return ParseDBError("CompanyRepository.Create", err)
+  }
+  return nil
 }
 
 func (r *gormCompanyRepository) GetByID(id uint) (*models.Company, error) {
   var c models.Company
-  if err := r.db.First(&c, id).Error; err != nil {
-    return nil, err
+  err := r.db.First(&c, id).Error
+  if errors.Is(err, gorm.ErrRecordNotFound) {
+    return nil, ParseDBError("CompanyRepository.GetByID", err)
+  }
+  if err != nil {
+    return nil, ParseDBError("CompanyRepository.GetByID", err)
   }
   return &c, nil
 }
 
 func (r *gormCompanyRepository) Update(company *models.Company) error {
-  return r.db.Save(company).Error
+  err := r.db.Save(company).Error
+  if err != nil {
+    return nil, ParseDBError("CompanyRepository.Update", err)
+  }
+  return nil
 }
 
 func (r *gormCompanyRepository) Delete(company *models.Company) error {
-  return r.db.Delete(company).Error
+  err := r.db.Delete(company).Error
+  if err != nil {
+    return nil, ParseDBError("CompanyRepository.Delete", err)
+  }
+  return nil
 }
 
