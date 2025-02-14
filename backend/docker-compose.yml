@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   # 1) Postgres container
   db:
@@ -26,7 +24,7 @@ services:
       # MIGRATIONS_PATH points to the path *inside* the container, from Dockerfile
       MIGRATIONS_PATH: "/app/migrations"
       # Use the db service name "db" and the same user/pass/db as above:
-      DATABASE_DSN: "postgres://user:pass@db:5432/mydb?sslmode=disable"
+      DATABASE_DSN: "postgres://bote:bote@db:5432/slotter?sslmode=disable"
       PORT: "8080"
     ports:
       - "8080:8080"

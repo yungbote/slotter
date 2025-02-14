@@ -6,16 +6,16 @@ CREATE TABLE IF NOT EXISTS company (
 
 -- Create 'role' table
 --  - Has a JSON or text[] 'permissions' field so we can store a list of permissions
-CREATE TABLE IF NOT EXISTS role (
-    id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
-    permissions JSONB NOT NULL DEFAULT '[]',
-    company_id INT,
-    CONSTRAINT fk_role_company
-      FOREIGN KEY (company_id)
-      REFERENCES company (id)
-      ON DELETE CASCADE
-);
+--CREATE TABLE IF NOT EXISTS role (
+--    id SERIAL PRIMARY KEY,
+--   name TEXT NOT NULL,
+--    permissions JSONB NOT NULL DEFAULT '[]',
+--    company_id INT,
+--    CONSTRAINT fk_role_company
+--      FOREIGN KEY (company_id)
+--      REFERENCES company (id)
+--      ON DELETE CASCADE
+--);
 
 -- Create 'warehouse' table
 --  - We'll tie warehouse to a company
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS "user" (
     full_name TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'pending',
     company_id INT,
-    role_id INT,
+--    role_id INT,
     created_at TIMESTAMPTZ DEFAULT now(),
 
     CONSTRAINT fk_user_company
@@ -52,11 +52,11 @@ CREATE TABLE IF NOT EXISTS "user" (
       REFERENCES company (id)
       ON DELETE SET NULL,
 
-    CONSTRAINT fk_user_role
-      FOREIGN KEY (role_id)
-      REFERENCES role (id)
-      ON DELETE SET NULL
-);
+--    CONSTRAINT fk_user_role
+--      FOREIGN KEY (role_id)
+--      REFERENCES role (id)
+--      ON DELETE SET NULL
+--);
 
 -- Create 'transactionrecord' table
 --  - Link to 'warehouse' instead of 'company'

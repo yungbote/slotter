@@ -1,100 +1,113 @@
 package handlers
 
 import (
-  "log"
-  "net/http"
-  "strconv"
-  "github.com/gin-gonic/gin"
-  "github.com/yungbote/slotter/backend/services/database/internal/database"
-  "github.com/yungbote/slotter/backend/services/database/internal/models"
+    "errors"
+    "log"
+    "net/http"
+    "strconv"
+    "github.com/gin-gonic/gin"
+    "github.com/yungbote/slotter/backend/services/database/internal/models"
+    "github.com/yungbote/slotter/backend/services/database/internal/repositories"
+    "github.com/yungbote/slotter/backend/services/database/internal/services"
 )
 
-func CreateWarehouse(c *gin.Context) {
-  var input models.Warehouse
-  if err := c.ShouldBindJSON(&input); err != nil {
-    log.Println("ERROR: CreateWarehouse bind error:", err)
-    c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid payload"})
-    return
-  }
-  if err := database.DB.Create(&input).Error; err != nil {
-    log.Println("ERROR: CreateWarehouse DB error:", err)
-    c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create warehouse"})
-    return
-  }
-  c.JSON(http.StatusOK, input)
+type WarehouseHandler struct {
+    service services.WarehouseService
 }
 
-func GetAllWarehouses(c *gin.Context) {
-  var warehouses []models.Warehouse
-  if err := database.DB.Find(&warehouses).Error; err != nil {
-    log.Println("ERROR: GetAllWarehouses DB error:", err)
-    c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not fetch warehouses"})
-    return
-  }
-  c.JSON(http.StatusOK, warehouses)
+func NewWarehouseHandler(service services.WarehouseService) *WarehouseHandler {
+    return &WarehouseHandler{service: service}
 }
 
-func GetWarehouseByID(c *gin.Context) {
-  idParam := c.Param("id")
-  id, err := strconv.Atoi(idParam)
-  if err != nil {
-    c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid warehouse ID"})
-    return
-  }
-  var warehouse models.Warehouse
-  if err := database.DB.First(&warehouse, id).Error; err != nil {
-    log.Println("ERROR: GetWarehouseByID DB error:", err)
-    c.JSON(http.StatusNotFound, gin.H{"error": "Warehouse not found"})
-    return
-  }
-  c.JSON(http.StatusOK, warehouse)
+func (h *WarehouseHandler) CreateWarehouse(c *gin.Context) {
+    var input models.Warehouse
+    if err := c.ShouldBindJSON(&input); err != nil {
+        log.Println("CreateWarehouse bind error:", err)
+        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
+        return
+    }
+    created, err := h.service.CreateWarehouse(&input)
+    if err != nil {
+        log.Println("CreateWarehouse service error:", err)
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "could not create warehouse"})
+        return
+    }
+    c.JSON(http.StatusCreated, created)
 }
 
-func UpdateWarehouse(c *gin.Context) {
-  idParam := c.Param("id")
-  id, err := strconv.Atoi(idParam)
-  if err != nil {
-    c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid warehouse ID"})
-    return
-  }
-  var existing models.Warehouse
-  if err := database.DB.First(&existing, id).Error; err != nil {
-    c.JSON(http.StatusNotFound, gin.H{"error": "Warehouse not found"})
-    return
-  }
-  var input models.Warehouse
-  if err := c.ShouldBindJSON(&input); err != nil {
-    log.Println("ERROR: UpdateWarehouse bind error:", err)
-    c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid payload"})
-    return
-  }
-  existing.Name = input.Name
-  existing.CompanyID = input.CompanyID
-
-  if err := database.DB.Save(&existing).Error; err != nil {
-    log.Println("ERROR: UpdateWarehouse DB error:", err)
-    c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not update warehouse"})
-    return
-  }
-  c.JSON(http.StatusOK, existing)
+func (h *WarehouseHandler) GetWarehouseByID(c *gin.Context) {
+    idParam := c.Param("id")
+    id, err := strconv.Atoi(idParam)
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid warehouse ID"})
+        return
+    }
+    warehouse, err := h.service.GetWarehouseByID(uint(id))
+    if errors.Is(err, repositories.ErrNotFound) {
+        c.JSON(http.StatusNotFound, gin.H{"error": "warehouse not found"})
+        return
+    }
+    if err != nil {
+        log.Println("GetWarehouseByID service error:", err)
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "could not fetch warehouse"})
+        return
+    }
+    c.JSON(http.StatusOK, warehouse)
 }
 
-func DeleteWarehouse(c *gin.Context) {
-  idParam := c.Param("id")
-  id, err := strconv.Atoi(idParam)
-  if err != nil {
-    c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid warehouse ID"})
-    return
-  }
-  var warehouse models.Warehouse
-  if err := database.DB.First(&warehouse, id).Error; err != nil {
-    c.JSON(http.StatusNotFound, gin.H{"error": "Warehouse not found"})
-    return
-  }
-  if err := database.DB.Delete(&warehouse).Error; err != nil {
-    log.Println("ERROR: DeleteWarehouse DB error:", err)
-    c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not delete warehouse"})
-    return
-  }
-  c.JSON(http.StatusOK, gin.H{"message": "Warehouse deleted"})
+func (h *WarehouseHandler) UpdateWarehouse(c *gin.Context) {
+    idParam := c.Param("id")
+    id, err := strconv.Atoi(idParam)
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid warehouse ID"})
+        return
+    }
+    existing, err := h.service.GetWarehouseByID(uint(id))
+    if errors.Is(err, repositories.ErrNotFound) {
+        c.JSON(http.StatusNotFound, gin.H{"error": "warehouse not found"})
+        return
+    }
+    if err != nil {
+        log.Println("UpdateWarehouse get error:", err)
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "could not fetch warehouse"})
+        return
+    }
+    var input models.Warehouse
+    if err := c.ShouldBindJSON(&input); err != nil {
+        log.Println("UpdateWarehouse bind error:", err)
+        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
+        return
+    }
+    updates, err := h.service.UpdateWarehouse(existing, &input)
+    if err != nil {
+        log.Println("UpdateWarehouse service error:", err)
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "could not update warehouse"})
+        return
+    }
+    c.JSON(http.StatusOK, updated)
+}
+
+func (h *WarehouseHandler) DeleteWarehouse(c *gin.Context) {
+    idParam := c.Param("id")
+    id, err := strconv.Atoi(idParam)
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid warehouse ID"})
+        return
+    }
+    existing, err := h.service.GetWarehouseByID(uint(id))
+    if errors.Is(err, repositories.ErrNotFound) {
+        c.JSON(http.StatusNotFound, gin.H{"error": "warehouse not found"})
+        return
+    }
+    if err != nil {
+        log.Println("DeleteWarehouse get error:", err)
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "could not fetch warehouse"})
+        return
+    }
+    if err := h.service.DeleteWarehouse(existing); err != nil {
+        log.Println("DeleteWarehouse service error:", err)
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "could not delete warehouse"})
+        return
+    }
+    c.JSON(http.StatusOK, gin.H{"message": "warehouse deleted"})
 }

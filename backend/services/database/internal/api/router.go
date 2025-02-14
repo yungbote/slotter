@@ -1,49 +1,64 @@
 package api
 
 import (
+  "net/http"
   "github.com/gin-gonic/gin"
+  "gorm.io/gorm"
+  "github.com/yungbote/slotter/backend/services/database/internal/repositories"
+  "github.com/yungbote/slotter/backend/services/database/internal/services"
   "github.com/yungbote/slotter/backend/services/database/internal/handlers"
 )
 
-func NewRouter() *gin.Engine {
+func NewRouter(db *gorm.DB) *gin.Engine {
   r := gin.Default()
 
   r.GET("/health", func(c *gin.Context) {
-    c.JSON(200, gin.H{"status": "OK"})
+    c.JSON(http.StatusOK, gin.H{"status": "OK"})
   })
+
+  //Repositories
+  companyRepo := repositories.NewCompanyRepository(db)
+  userRepo := repositories.NewUserRepository(db)
+  warehouseRepo := repositories.NewWarehouseRepository(db)
+  transactionrecordRepo := repositories.NewTransactionRecordRepository(db)
+
+  //Services
+  companyService := services.NewCompanyService(companyRepo)
+  userService := services.NewUserService(userRepo)
+  warehouseService := services.NewWarehouseService(warehouseRepo)
+  transactionrecordService := services.NewTransactionRecordService(transactionrecordRepo)
+
+  //Handlers
+  companyHandler := handlers.NewCompanyHandler(companyService)
+  userHandler := handlers.NewUserHandler(userService)
+  warehouseHandler := handlers.NewWarehouseHandler(warehouseService)
+  transactionrecordHandler := handlers.NewTransactionRecordHandler(transactionrecordService)
 
   api := r.Group("/v1")
   {
-    api.POST("/users", handlers.CreateUser)
-    api.GET("/users", handlers.GetAllUsers)
-    api.GET("/users/:id", handlers.GetUserByID)
-    api.PUT("/users/:id", handlers.UpdateUser)
-    api.DELETE("/users/:id", handlers.DeleteUser)
+    //Company
+    api.POST("/company", companyHandler.CreateCompany)
+    api.GET("/company/:id", companyHandler.GetCompanyByID)
+    api.PUT("/company/:id", companyHandler.UpdateCompany)
+    api.DELETE("/company/:id", companyHandler.DeleteCompany)
 
-    api.POST("/companies", handlers.CreateCompany)
-    api.GET("/companies", handlers.GetAllCompanies)
-    api.GET("/companies/:id", handlers.GetCompanyByID)
-    api.PUT("/companies/:id", handlers.UpdateCompany)
-    api.DELETE("/companies/:id", handlers.DeleteCompany)
+    //Warehouse
+    api.POST("/warehouse", warehouseHandler.CreateWarehouse)
+    api.GET("/warehouse/:id", warehouseHandler.GetWarehouseByID)
+    api.PUT("/warehouse/:id", warehouseHandler.UpdateWarehouse)
+    api.DELETE("/warehouse/:id", warehouseHandler.DeleteWarehouse)
 
-    api.POST("/transactionrecords", handlers.CreateTransactionRecord)
-    api.GET("/transactionrecords", handlers.GetAllTransactionRecords)
-    api.GET("/transactionrecords/:id", handlers.GetTransactionRecordsByID)
-    api.PUT("/transactionrecords/:id", handlers.UpdateTransactionRecord)
-    api.DELETE("/transactionrecords/:id", handlers.DeleteTransactionRecord)
+    //TransactionRecord
+    api.POST("/transactionrecord", transactionrecordHandler.CreateTransactionRecord)
+    api.GET("/transactionrecord/:id", transactionrecordHandler.GetTransactionRecordByID)
+    api.PUT("/transactionrecord/:id", transactionrecordHandler.UpdateTransactionRecord)
+    api.DELETE("/transactionrecor/:id", transactionrecordHandler.DeleteTransactionRecord)
 
-    api.POST("/warehouses", handlers.CreateWarehouse)
-    api.GET("/warehouses", handlers.GetAllWarehouses)
-    api.GET("/warehouses/:id", handlers.GetWarehouseByID)
-    api.PUT("/warehouses/:id", handlers.UpdateWarehouse)
-    api.DELETE("/warehouses/:id", handlers.DeleteWarehouse)
-
-    api.POST("/roles", handlers.CreateRole)
-    api.GET("/roles", handlers.GetAllRoles)
-    api.GET("/roles/:id", handlers.GetRoleByID)
-    api.PUT("/roles/:id", handlers.UpdateRole)
-    api.DELETE("/roles/:id", handlers.DeleteRole)
-
+    //User
+    api.POST("/user", userHandler.CreateUser)
+    api.GET("/user/:id", userHandler.GetUserByID)
+    api.PUT("/user/:id", userHandler.UpdateUser)
+    api.DELETE("/user/:id", userHandler.DeleteUser)
   }
   return r
 }

@@ -1,113 +1,113 @@
 package handlers
 
 import (
-  "log"
-  "net/http"
-  "strconv"
-  "github.com/gin-gonic/gin"
-  "github.com/yungbote/slotter/backend/services/database/internal/database"
-  "github.com/yungbote/slotter/backend/services/database/internal/models"
+    "errors"
+    "log"
+    "net/http"
+    "strconv"
+    "github.com/gin-gonic/gin"
+    "github.com/yungbote/slotter/backend/services/database/internal/models"
+    "github.com/yungbote/slotter/backend/services/database/internal/repositories"
+    "github.com/yungbote/slotter/backend/services/database/internal/services"
 )
 
-func CreateTransactionRecord(c *gin.Context) {
-  var input models.TransactionRecord
-  if err := c.ShouldBindJSON(&input); err != nil {
-    log.Println("ERROR: CreateTransactionRecord bind error:", err)
-    c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid payload"})
-    return
-  }
-  if err := database.DB.Create(&input).Error; err != nil {
-    log.Println("ERROR: CreateTransactionRecord DB error:", err)
-    c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create transaction record"})
-    return
-  }
-  c.JSON(http.StatusOK, input)
+type TransactionRecordHandler struct {
+    service services.TransactionRecordService
 }
 
-func GetAllTransactionRecords(c *gin.Context) {
-  var records []models.TransactionRecord
-  if err := database.DB.Find(&records).Error; err != nil {
-    log.Println("ERROR: GetAllTransactionRecords DB error:", err)
-    c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not fetch transaction records"})
-    return
-  }
-  c.JSON(http.StatusOK, records)
+func NewTransactionRecordHandler(service services.TransactionRecordService) *TransactionRecordHandler {
+    return &TransactionRecordHandler{service: service}
 }
 
-func GetTransactionRecordsByID(c *gin.Context) {
-  idParam := c.Param("id")
-  id, err := strconv.Atoi(idParam)
-  if err != nil {
-    c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid record ID"})
-    return
-  }
-  var record models.TransactionRecord
-  if err := database.DB.First(&record, id).Error; err != nil {
-    log.Println("ERROR: GetTransactionRecordByID DB error:", err)
-    c.JSON(http.StatusNotFound, gin.H{"error": "Record not found"})
-    return
-  }
-  c.JSON(http.StatusOK, record)
+func (h *TransactionRecordHandler) CreateTransactionRecord(c *gin.Context) {
+    var input models.TransactionRecord
+    if err := c.ShouldBindJSON(&input); err != nil {
+        log.Println("CreateTransactionRecord bind error:", err)
+        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
+        return
+    }
+    created, err := h.service.CreateTransactionRecord(&input)
+    if err != nil {
+        log.Println("CreateTransactionRecord service error:", err)
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "could not create transaction record"})
+        return
+    }
+    c.JSON(http.StatusCreated, created)
 }
 
-func UpdateTransactionRecord(c *gin.Context) {
-  idParam := c.Param("id")
-  id, err := strconv.Atoi(idParam)
-  if err != nil {
-    c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid record ID"})
-    return
-  }
-  var existing models.TransactionRecord
-  if err := database.DB.First(&existing, id).Error; err != nil {
-    c.JSON(http.StatusNotFound, gin.H{"error": "Record not found"})
-    return
-  }
-  var input models.TransactionRecord
-  if err := c.ShouldBindJSON(&input); err != nil {
-    log.Println("ERROR: UpdateTransactionRecord bind error:", err)
-    c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid payload"})
-    return
-  }
-  existing.CompanyID = input.CompanyID
-  existing.TransactionType = input.TransactionType
-  existing.OrderNumber = input.OrderNumber
-  existing.ItemNumber = input.ItemNumber
-  existing.Description = input.Description
-  existing.TransactionQuantity = input.TransactionQuantity
-  existing.Location = input.Location
-  existing.Zone = input.Zone
-  existing.Carousel = input.Carousel
-  existing.Row = input.Row
-  existing.Shelf = input.Shelf
-  existing.Bin = input.Bin
-  existing.CompletedDate = input.CompletedDate
-  existing.CompletedBy = input.CompletedBy
-  existing.CompletedQuantity = input.CompletedQuantity
-
-  if err := database.DB.Save(&existing).Error; err != nil {
-    log.Println("ERROR: UpdateTransactionRecord DB error:", err)
-    c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not update transaction record"})
-    return
-  }
-  c.JSON(http.StatusOK, existing)
+func (h *TransactionRecordHandler) GetTransactionRecordByID(c *gin.Context) {
+    idParam := c.Param("id")
+    id, err := strconv.Atoi(idParam)
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid transaction record ID"})
+        return
+    }
+    record, err := h.service.GetTransactionRecordByID(uint(id))
+    if errors.Is(err, repositories.ErrNotFound) {
+        c.JSON(http.StatusNotFound, gin.H{"error": "transaction record not found"})
+        return
+    }
+    if err != nil {
+        log.Println("GetTransactionRecordByID service error:", err)
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "could not fetch transaction record"})
+        return
+    }
+    c.JSON(http.StatusOK, record)
 }
 
-func DeleteTransactionRecord(c *gin.Context) {
-  idParam := c.Param("id")
-  id, err := strconv.Atoi(idParam)
-  if err != nil {
-    c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid record ID"})
-    return
-  }
-  var record models.TransactionRecord
-  if err := database.DB.First(&record, id).Error; err != nil {
-    c.JSON(http.StatusNotFound, gin.H{"error": "Record not found"})
-    return
-  }
-  if err := database.DB.Delete(&record).Error; err != nil {
-    log.Println("ERROR: DeleteTransactionRecord DB error:", err)
-    c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not delete transaction record"})
-    return
-  }
-  c.JSON(http.StatusOK, gin.H{"message": "Transaction record deleted"})
+func (h *TransactionRecordHandler) UpdateTransactionRecord(c *gin.Context) {
+    idParam := c.Param("id")
+    id, err := strconv.Atoi(idParam)
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid transaction record ID"})
+        return
+    }
+    existing, err := h.service.GetTransactionRecordByID(uint(id))
+    if errors.Is(err, repositories.ErrNotFound) {
+        c.JSON(http.StatusNotFound, gin.H{"error": "transaction record not found"})
+        return
+    }
+    if err != nil {
+        log.Println("UpdateTransactionRecord get error:", err)
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "could not fetch transaction record"})
+        return
+    }
+    var input models.TransactionRecord
+    if err := c.ShouldBindJSON(&input); err != nil {
+        log.Println("UpdateTransactionRecord bind error:", err)
+        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
+        return
+    }
+    updated, err := h.service.UpdateTransactionRecord(existing, &input)
+    if err != nil {
+        log.Println("UpdateTransactionRecord service error:", err)
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "could not update transaction record"})
+        return
+    }
+    c.JSON(http.StatusOK, updated)
+}
+
+func (h *TransactionRecordHandler) DeleteTransactionRecord(c *gin.Context) {
+    idParam := c.Param("id")
+    id, err := strconv.Atoi(idParam)
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid transaction record ID"})
+        return
+    }
+    existing, err := h.service.GetTransactionRecordByID(uint(id))
+    if errors.Is(err, repositories.ErrNotFound) {
+        c.JSON(http.StatusNotFound, gin.H{"error": "transaction record not found"})
+        return
+    }
+    if err != nil {
+        log.Println("DeleteTransactionRecord get error:", err)
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "could not fetch transaction record"})
+        return
+    }
+    if err := h.service.DeleteTransactionRecord(existing); err != nil {
+        log.Println("DeleteTransactionRecord service error:", err)
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "could not delete transaction record"})
+        return
+    }
+    c.JSON(http.StatusOK, gin.H{"message": "transaction record deleted"})
 }

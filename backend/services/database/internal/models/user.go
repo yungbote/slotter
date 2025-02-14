@@ -6,8 +6,8 @@ import (
 
 type User struct {
   ID            uint      `gorm:"primaryKey"`
-  RoleID        uint
-  Role          Role
+/*  RoleID        uint
+  Role          Role*/
   Email         string    `gorm:"uniqueIndex;not null"`
   PasswordHash  string    `gorm:"not null"`
   FullName      string    `gorm:"not null"`

@@ -8,18 +8,13 @@ import (
   "gorm.io/gorm/schema"
 )
 
-var DB *gorm.DB
-
-func InitDB(dsn string) error {
-  var err error
-  DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
-    NamingStrategy: schema.NamingStrategy{
-      SingularTable: true,
-    },
+func InitDB(dsn string) (*gorm.DB, error) {
+  db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+    NamingStrategy: schema.NamingStrategy{SingularTable: true},
   })
   if err != nil {
-    return fmt.Errorf("ERROR: Failed to connect database: %w", err)
+    return nil, fmt.Errorf("ERROR: Failed to connect to database: %w", err)
   }
-  log.Println("INFO: GORM connected to DB.")
-  return nil
+  log.Println("INFO: Connected to database")
+  return db, nil
 }
