@@ -1,14 +1,15 @@
 package handlers
 
 import (
-    "errors"
-    "log"
     "net/http"
     "strconv"
     "github.com/gin-gonic/gin"
+    "errors"
+    "go.uber.org/zap"
     "github.com/yungbote/slotter/backend/services/database/internal/models"
     "github.com/yungbote/slotter/backend/services/database/internal/repositories"
     "github.com/yungbote/slotter/backend/services/database/internal/services"
+    "github.com/yungbote/slotter/backend/services/database/internal/logger"
 )
 
 type UserHandler struct {
@@ -22,11 +23,17 @@ func NewUserHandler(service services.UserService) *UserHandler {
 func (h *UserHandler) CreateUser(c *gin.Context) {
     var input models.User
     if err := c.ShouldBindJSON(&input); err != nil {
-        log.Println("CreateUser bind error:", err)
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "could not create user"})
+        logger.GetLogger().Warn("CreateUser bind error", zap.Error(err))
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON payload"})
         return
     }
-    c.JSON(http.StatusCreated, created)
+    createdUser, err := h.service.CreateUser(&input)
+    if err != nil {
+        logger.GetLogger().Error("CreateUser service error", zap.Error(err))
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create user"})
+        return
+    }
+    c.JSON(http.StatusCreated, createdUser)
 }
 
 func (h *UserHandler) GetUserByID(c *gin.Context) {
@@ -42,7 +49,7 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
         return
     }
     if err != nil {
-        log.Println("GetUserByID error:", err)
+        logger.GetLogger().Error("GetUserByID service error", zap.Error(err))
         c.JSON(http.StatusInternalServerError, gin.H{"error": "could not fetch user"})
         return
     }
@@ -62,23 +69,23 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
         return
     }
     if err != nil {
-        log.Println("UpdateUser get error:", err)
+        logger.GetLogger().Error("UpdateUser get error", zap.Error(err))
         c.JSON(http.StatusInternalServerError, gin.H{"error": "could not fetch user"})
         return
     }
     var input models.User
     if err := c.ShouldBindJSON(&input); err != nil {
-        log.Println("UpdateUser bind error:", err)
+        logger.GetLogger().Warn("UpdateUser bind error", zap.Error(err))
         c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
         return
     }
-    updates, err := h.service.UpdateUser(existing, &input)
+    updatedUser, err := h.service.UpdateUser(existing, &input)
     if err != nil {
-        log.Prinln("UpdateUser service error:", err)
+        logger.GetLogger().Error("UpdateUser service error", zap.Error(err))
         c.JSON(http.StatusInternalServerError, gin.H{"error": "could not update user"})
         return
     }
-    c.JSON(http.StatusOK, updated)
+    c.JSON(http.StatusOK, updatedUser)
 }
 
 func (h *UserHandler) DeleteUser(c *gin.Context) {
@@ -94,7 +101,12 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
         return
     }
     if err != nil {
-        log.Prinln("DeleteUser get error:", err)
+        logger.GetLogger().Error("DeleteUser get error", zap.Error(err))
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "could not delete user"})
+        return
+    }
+    if err := h.service.DeleteUser(existing); err != nil {
+        logger.GetLogger().Error("DeleteUser service error", zap.Error(err))
         c.JSON(http.StatusInternalServerError, gin.H{"error": "could not delete user"})
         return
     }

@@ -4,6 +4,8 @@ import (
   "net/http"
   "github.com/gin-gonic/gin"
   "gorm.io/gorm"
+  "go.uber.org/zap"
+  "github.com/yungbote/slotter/backend/services/database/internal/logger"
   "github.com/yungbote/slotter/backend/services/database/internal/repositories"
   "github.com/yungbote/slotter/backend/services/database/internal/services"
   "github.com/yungbote/slotter/backend/services/database/internal/handlers"
@@ -13,6 +15,7 @@ func NewRouter(db *gorm.DB) *gin.Engine {
   r := gin.Default()
 
   r.GET("/health", func(c *gin.Context) {
+    logger.GetLogger().Debug("Health check ping")
     c.JSON(http.StatusOK, gin.H{"status": "OK"})
   })
 

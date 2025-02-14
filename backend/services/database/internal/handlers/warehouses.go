@@ -1,14 +1,15 @@
 package handlers
 
 import (
-    "errors"
-    "log"
     "net/http"
     "strconv"
     "github.com/gin-gonic/gin"
+    "errors"
+    "go.uber.org/zap"
     "github.com/yungbote/slotter/backend/services/database/internal/models"
     "github.com/yungbote/slotter/backend/services/database/internal/repositories"
     "github.com/yungbote/slotter/backend/services/database/internal/services"
+    "github.com/yungbote/slotter/backend/services/database/internal/logger"
 )
 
 type WarehouseHandler struct {
@@ -22,17 +23,17 @@ func NewWarehouseHandler(service services.WarehouseService) *WarehouseHandler {
 func (h *WarehouseHandler) CreateWarehouse(c *gin.Context) {
     var input models.Warehouse
     if err := c.ShouldBindJSON(&input); err != nil {
-        log.Println("CreateWarehouse bind error:", err)
+        logger.GetLogger().Warn("CreateWarehouse bind error", zap.Error(err))
         c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
         return
     }
-    created, err := h.service.CreateWarehouse(&input)
+    createdWarehouse, err := h.service.CreateWarehouse(&input)
     if err != nil {
-        log.Println("CreateWarehouse service error:", err)
+        logger.GetLogger().Error("CreateWarehouse service error", zap.Error(err))
         c.JSON(http.StatusInternalServerError, gin.H{"error": "could not create warehouse"})
         return
     }
-    c.JSON(http.StatusCreated, created)
+    c.JSON(http.StatusCreated, createdWarehouse)
 }
 
 func (h *WarehouseHandler) GetWarehouseByID(c *gin.Context) {
@@ -48,7 +49,7 @@ func (h *WarehouseHandler) GetWarehouseByID(c *gin.Context) {
         return
     }
     if err != nil {
-        log.Println("GetWarehouseByID service error:", err)
+        logger.GetLogger().Error("GetWarehouseByID service error", zap.Error(err))
         c.JSON(http.StatusInternalServerError, gin.H{"error": "could not fetch warehouse"})
         return
     }
@@ -68,23 +69,23 @@ func (h *WarehouseHandler) UpdateWarehouse(c *gin.Context) {
         return
     }
     if err != nil {
-        log.Println("UpdateWarehouse get error:", err)
+        logger.GetLogger().Error("UpdateWarehouse get error", zap.Error(err))
         c.JSON(http.StatusInternalServerError, gin.H{"error": "could not fetch warehouse"})
         return
     }
     var input models.Warehouse
     if err := c.ShouldBindJSON(&input); err != nil {
-        log.Println("UpdateWarehouse bind error:", err)
+        logger.GetLogger().Warn("UpdateWarehouse bind error", zap.Error(err))
         c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
         return
     }
-    updates, err := h.service.UpdateWarehouse(existing, &input)
+    updatedWarehouse, err := h.service.UpdateWarehouse(existing, &input)
     if err != nil {
-        log.Println("UpdateWarehouse service error:", err)
+        logger.GetLogger().Error("UpdateUser service error", zap.Error(err))
         c.JSON(http.StatusInternalServerError, gin.H{"error": "could not update warehouse"})
         return
     }
-    c.JSON(http.StatusOK, updated)
+    c.JSON(http.StatusOK, updatedWarehouse)
 }
 
 func (h *WarehouseHandler) DeleteWarehouse(c *gin.Context) {
@@ -100,12 +101,12 @@ func (h *WarehouseHandler) DeleteWarehouse(c *gin.Context) {
         return
     }
     if err != nil {
-        log.Println("DeleteWarehouse get error:", err)
+        logger.GetLogger().Error("DeleteWarehouse get error", zap.Error(err))
         c.JSON(http.StatusInternalServerError, gin.H{"error": "could not fetch warehouse"})
         return
     }
     if err := h.service.DeleteWarehouse(existing); err != nil {
-        log.Println("DeleteWarehouse service error:", err)
+        logger.GetLogger().Error("DeleteWarehouse service error", zap.Error(err))
         c.JSON(http.StatusInternalServerError, gin.H{"error": "could not delete warehouse"})
         return
     }

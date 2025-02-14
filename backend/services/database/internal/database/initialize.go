@@ -2,10 +2,11 @@ package database
 
 import (
   "fmt"
-  "log"
+  "go.uber.org/zap"
   "gorm.io/driver/postgres"
   "gorm.io/gorm"
   "gorm.io/gorm/schema"
+  "github.com/yungbote/slotter/backend/services/database/internal/logger"
 )
 
 func InitDB(dsn string) (*gorm.DB, error) {
@@ -15,6 +16,6 @@ func InitDB(dsn string) (*gorm.DB, error) {
   if err != nil {
     return nil, fmt.Errorf("ERROR: Failed to connect to database: %w", err)
   }
-  log.Println("INFO: Connected to database")
+  logger.GetLogger().Info("Connected to database", zap.String("dsn", dsn))
   return db, nil
 }

@@ -1,14 +1,15 @@
 package handlers
 
 import (
-    "errors"
-    "log"
     "net/http"
     "strconv"
     "github.com/gin-gonic/gin"
+    "errors"
+    "go.uber.org/zap"
     "github.com/yungbote/slotter/backend/services/database/internal/models"
     "github.com/yungbote/slotter/backend/services/database/internal/repositories"
     "github.com/yungbote/slotter/backend/services/database/internal/services"
+    "github.com/yungbote/slotter/backend/services/database/internal/logger"
 )
 
 type TransactionRecordHandler struct {
@@ -22,17 +23,17 @@ func NewTransactionRecordHandler(service services.TransactionRecordService) *Tra
 func (h *TransactionRecordHandler) CreateTransactionRecord(c *gin.Context) {
     var input models.TransactionRecord
     if err := c.ShouldBindJSON(&input); err != nil {
-        log.Println("CreateTransactionRecord bind error:", err)
+        logger.GetLogger().Warn("CreateTransactionRecord bind error", zap.Error(err))
         c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
         return
     }
-    created, err := h.service.CreateTransactionRecord(&input)
+    createdTransactionRecord, err := h.service.CreateTransactionRecord(&input)
     if err != nil {
-        log.Println("CreateTransactionRecord service error:", err)
+        logger.GetLogger().Warn("CreateTransactionRecord service error", zap.Error(err))
         c.JSON(http.StatusInternalServerError, gin.H{"error": "could not create transaction record"})
         return
     }
-    c.JSON(http.StatusCreated, created)
+    c.JSON(http.StatusCreated, createdTransactionRecord)
 }
 
 func (h *TransactionRecordHandler) GetTransactionRecordByID(c *gin.Context) {
@@ -48,7 +49,7 @@ func (h *TransactionRecordHandler) GetTransactionRecordByID(c *gin.Context) {
         return
     }
     if err != nil {
-        log.Println("GetTransactionRecordByID service error:", err)
+        logger.GetLogger().Error("GetTransactionRecordByID service error", zap.Error(err))
         c.JSON(http.StatusInternalServerError, gin.H{"error": "could not fetch transaction record"})
         return
     }
@@ -68,23 +69,23 @@ func (h *TransactionRecordHandler) UpdateTransactionRecord(c *gin.Context) {
         return
     }
     if err != nil {
-        log.Println("UpdateTransactionRecord get error:", err)
+        logger.GetLogger().Error("UpdateTransactionRecord get error", zap.Error(err))
         c.JSON(http.StatusInternalServerError, gin.H{"error": "could not fetch transaction record"})
         return
     }
     var input models.TransactionRecord
     if err := c.ShouldBindJSON(&input); err != nil {
-        log.Println("UpdateTransactionRecord bind error:", err)
+        logger.GetLogger().Warn("UpdateTransactionRecord bind error", zap.Error(err))
         c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
         return
     }
-    updated, err := h.service.UpdateTransactionRecord(existing, &input)
+    updatedTransactionRecord, err := h.service.UpdateTransactionRecord(existing, &input)
     if err != nil {
-        log.Println("UpdateTransactionRecord service error:", err)
+        logger.GetLogger().Error("UpdateTransactionRecord service error", zap.Error(err))
         c.JSON(http.StatusInternalServerError, gin.H{"error": "could not update transaction record"})
         return
     }
-    c.JSON(http.StatusOK, updated)
+    c.JSON(http.StatusOK, updatedTransactionRecord)
 }
 
 func (h *TransactionRecordHandler) DeleteTransactionRecord(c *gin.Context) {
@@ -100,12 +101,12 @@ func (h *TransactionRecordHandler) DeleteTransactionRecord(c *gin.Context) {
         return
     }
     if err != nil {
-        log.Println("DeleteTransactionRecord get error:", err)
+        logger.GetLogger().Error("DeleteTransactionRecord get error", zap.Error(err))
         c.JSON(http.StatusInternalServerError, gin.H{"error": "could not fetch transaction record"})
         return
     }
     if err := h.service.DeleteTransactionRecord(existing); err != nil {
-        log.Println("DeleteTransactionRecord service error:", err)
+        logger.GetLogger().Error("DeleteTransactionRecord service error", zap.Error(err))
         c.JSON(http.StatusInternalServerError, gin.H{"error": "could not delete transaction record"})
         return
     }
