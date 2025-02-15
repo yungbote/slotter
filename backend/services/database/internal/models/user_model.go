@@ -6,12 +6,10 @@ import (
 
 type User struct {
   ID            uint      `gorm:"primaryKey"`
-/*  RoleID        uint
-  Role          Role*/
   Email         string    `gorm:"uniqueIndex;not null"`
   PasswordHash  string    `gorm:"not null"`
-  FullName      string    `gorm:"not null"`
-  Status        string    `gorm:"not null;default:'pending'"`
+  FirstName     string    `gorm:"not null"`
+  LastName      string    `gorm:"not null"`
   CompanyID     uint
   Company       Company
   CreatedAt     time.Time

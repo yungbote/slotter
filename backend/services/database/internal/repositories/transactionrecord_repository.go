@@ -56,3 +56,25 @@ func (r *transactionRecordRepository) Delete(record *models.TransactionRecord) e
   }
   return nil
 }
+
+func (r *transactionRecordRepository) ListByWarehouseID(warehouseID uint) ([]*models.TransactionRecord, error) {
+  const op = "TransactionRecordRepository.ListByWarehouseID"
+  var records []*models.TransactionRecord
+  err := r.db.Where("warehouse_id = ?", warehouseID).Find(&records).Error
+  if err != nil {
+    return nil, ParseDBError(op, err)
+  }
+  return records, nil
+}
+
+func (r *transactionRecordRepository) ListByLocationID(locationID uint) ([]*models.TransactionRecord, error) {
+  const op = "TransactionRecordRepository.ListByLocationID"
+  var records []*models.TransactionRecord
+  err := r.db.Where("location_id = ?", warehouseID).Find(&records).Error
+  if err != nil {
+    return nil, ParseDBError(op, err)
+  }
+  return records, nil
+}
+
+

@@ -1,6 +1,8 @@
 package services
 
 import (
+  "fmt"
+  "strings"
   "github.com/yungbote/slotter/backend/services/database/internal/models"
   "github.com/yungbote/slotter/backend/services/database/internal/repositories"
 )
@@ -14,7 +16,7 @@ type UserService interface {
 }
 
 type userService struct {
-  repo                repositories.UserRepository
+  userRepo            repositories.UserRepository
   companyRepo         repositories.CompanyRepository
 }
 
@@ -33,11 +35,28 @@ func (s *userService) CreateUser(input *models.User) (*models.User, error) {
 }
 
 func (s *userService) GetUserByID(id uint) (*models.User, error) {
-  return s.repo.GetByID(id)
+  const op = "UserService.GetUserByID"
+  if id == 0 {
+    return nil, repositories.NewDomainError(op, repositories.ErrCodeValidation, "user id must be > 0", nil)
+  }
+  user, err := s.userRepo.GetbyID(id)
+  if err != nil {
+    return nil, err
+  }
+  return user, nil
 }
 
 func (s *userService) GetUserByEmail(email string) (*models.User, error) {
-  return s.repo.GetByEmail(email)
+  const op = "UserService.GetUserByEmail"
+  email = strings.TrimSpace(email)
+  if email = "" {
+    return nil, repositories.NewDomainError(op, repositories.ErrCodeValidation, "email cannot be empty", nil)
+  }
+  user, err := s.userRepo.GetByEmail(email)
+  if err != nil {
+    return nil, err
+  }
+  return user, nil
 }
 
 func (s *userService) UpdateUser(existing *models.User, updates *models.User) (*models.User, error) {
@@ -45,14 +64,14 @@ func (s *userService) UpdateUser(existing *models.User, updates *models.User) (*
   existing.PasswordHash = updates.PasswordHash
   existing.FullName = updates.FullName
   existing.CompanyID = updates.CompanyID
-  if err := s.repo.Update(existing); err != nil {
+  if err := s.userRepo.Update(existing); err != nil {
     return nil, err
   }
   return existing, nil
 }
 
 func (s *userService) DeleteUser(existing *models.User) error {
-  return s.repo.Delete(existing)
+  return s.userRepo.Delete(existing)
 }
 
 func (s *userService) validateCreateUserInput(u *models.User) error {

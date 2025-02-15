@@ -29,7 +29,7 @@ func (r *userRepository) Create(user *models.User) error {
   return nil
 }
 
-func (r *userRepository) GetById(id uint) (*models.User, error) {
+func (r *userRepository) GetByID(id uint) (*models.User, error) {
   var u models.User
   err := r.db.First(&u, id).Error
   if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -62,10 +62,32 @@ func (r *userRepository) Update(user *models.User) error {
   return nil
 }
 
-func(r *userRepository) Delete(user *models.User) error {
+func (r *userRepository) Delete(user *models.User) error {
   err := r.db.Delete(user).Error
   if err != nil {
     return ParseDBError("UserRepository.Delete", err)
   }
   return nil
 }
+
+func (r *userRepository) ListByCompanyID(companyID uint) ([]*models.User, error) {
+  const op = "UserRepository.ListByCompanyID"
+  var users []*models.User
+  err := r.db.Where("company_id = ?", companyID).Find(&users).Error
+  if err != nil {
+    return nil, ParseDBError(op, err)
+  }
+  return users, nil
+}
+
+func (r *userRepository) CountByCompanyID(companyID uint) (int64, error) {
+  const op = "UserRepository.CountByCompanyID"
+  var count int64
+  err := r.db.Model(&models.User{}).Where("company_id = ?", companyID).Count(&count).Error
+  if err != nil {
+    return 0, ParseDBError(op, err)
+  }
+  return count, nil
+}
+
+

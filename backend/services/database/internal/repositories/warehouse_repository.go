@@ -56,3 +56,25 @@ func (r *warehouseRepository) Delete(warehouse *models.Warehouse) error {
   }
   return nil
 }
+
+func (r *warehouseRepository) ListByCompanyID(companyID uint) ([]*models.Warehouse, error) {
+  const op = "WarehouseRepository.ListByCompanyID"
+  var warehouses []*models.Warehouse
+  err := r.db.Where("company_id = ?", companyID).Find(&warehouses).Error
+  if err != nil {
+    return nil, ParseDBError(op, err)
+  }
+  return warehouses, nil
+}
+
+func (r *warehouseRepository) CountByCompanyID(companyID uint) (int64, error) {
+  const op = "WarehouseRepository.CountByCompanyID"
+  var count int64
+  err := r.db.Model(&models.Warehouse{}).Where("company_id = ?", companyID).Count(&count).Error
+  if err != nil {
+    return 0, ParseDBError(op, err)
+  }
+  return count, nil
+}
+
+

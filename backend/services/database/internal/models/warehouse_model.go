@@ -5,5 +5,4 @@ type Warehouse struct {
   Name        string    `gorm:"not null"`
   CompanyID   uint
   Company     Company
-
 }
