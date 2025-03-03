@@ -1,6 +1,7 @@
 package services
 
 import (
+  "time"
   "context"
   "errors"
   "fmt"
@@ -12,7 +13,6 @@ import (
   "github.com/yungbote/slotter/backend/services/database/internal/models"
   "github.com/yungbote/slotter/backend/services/database/internal/repos"
   "github.com/yungbote/slotter/backend/services/database/internal/events"
-  "github.com/yungbote/slotter/backend/services/database/internal/auth"
   "github.com/yungbote/slotter/backend/services/database/internal/services/avatar"
   "github.com/yungbote/slotter/backend/services/database/internal/services/s3"
 )
@@ -26,19 +26,20 @@ type AppSvc interface {
   RegisterUserLocal(ctx context.Context, email, password, firstName, lastName string, createCompanyName string) (*models.User, string, error)
   LoginUserLocal(ctx context.Context, email, password string) (*models.User, string, error)
   LoginWithGoogle(ctx context.Context, code, state string) (*models.User, string, error)
-  LogoutUser()
+  LogoutUser(ctx context.Context, userID uuid.UUID) error
+  RefreshTokens(ctx context.Context, userID uuid.UUID, refreshToken string) (newAccessToken string, err error)
 
   //Company
   CreateCompany(ctx context.Context, name string, generateAvatar bool) (*models.Company, error)
   GetCompanyByID(ctx context.Context, companyID uuid.UUID) (*models.Company, error)
-  UpdateCompanyAvatar(ctx context.Context, userID uuid.UUID, newAvatar ) error
+  UpdateCompanyAvatar(ctx context.Context, userID uuid.UUID, newAvatar string) error
   UpdateCompanyName(ctx context.Context, userID uuid.UUID, newName string)
 
   //Warehouse
   CreateWarehouse(ctx context.Context, userID uuid.UUID, createWarehouseName string) error
   GetWarehouseByID(ctx context.Context, warehouseID uuid.UUID) (*models.Warehouse, error)
   UpdateWarehouseName(ctx context.Context, userID uuid.UUID, newWarehouseName string) error
-  DeleteWarehouse(ctx context.Context, userID, warehouseID uuid.UUID) error
+  DeleteWarehouse(ctx context.Context, userID uuid.UUID, warehouseID uuid.UUID) error
   ListWarehouses(ctx context.Context, userID uuid.UUID, f repos.WarehouseFilter) ([]*models.Warehouse, error)
 
   //Location
@@ -55,7 +56,7 @@ type AppSvc interface {
   ListTransactionFiles(ctx context.Context, userID uuid.UUID, f repos.TransactionFileFilter) ([]*models.TransactionFile, error)
 
   //TransactionRecord
-  CreateTransactionRecord(ctx context.Context, userID, warehouseID uuid.UUID, transactionType, orderName, description string, transactionQ, completedQ int64, completedDate time.Time, locationPath, locationNamePath, itemName string) error
+  CreateTransactionRecord(ctx context.Context, userID uuid.UUID, warehouseID uuid.UUID, transactionType string, orderName string, description string, transactionQ int64, completedQ int64, completedDate time.Time, locationPath string, locationNamePath string, itemName string) error
   GetTransactionRecordByID(ctx context.Context, recordID uuid.UUID) (*models.TransactionRecord, error)
   UpdateTransactionRecordOrderName(ctx context.Context, recordID uuid.UUID, newOrderName string) error
   UpdateTransactionRecordDescription(ctx context.Context, recordID uuid.UUID, newDescription string) error
@@ -65,7 +66,7 @@ type AppSvc interface {
   ListTransactionRecords(ctx context.Context, userID uuid.UUID, f repos.TransactionRecordFilter) ([]*models.TransactionRecord, error)
 
   //User
-  UpdateUserAvatar(ctx context.Context, userID uuid.UUID, newAvatar )
+  UpdateUserAvatar(ctx context.Context, userID uuid.UUID, newAvatar string)
   UpdateUserFirstName(ctx context.Context, userID uuid.UUID, newFirst string) error
   UpdateUserLastName(ctx context.Context, userID uuid.UUID, newLast string) error
   UpdateUserEmail(ctx context.Context, userID uuid.UUID, newEmail string) error
@@ -77,49 +78,50 @@ type AppSvc interface {
   ListItems(ctx context.Context, userID uuid.UUID, f repos.ItemFilter) ([]*models.Item, error)
 
   //Utility
-  generateUserAvatar(ctx context.Context, firstName, lastName string) (string, error)
-  generateCompanyAvatar(ctx contex.Context, companyName string) (string, error)
+  generateUserAvatar(ctx context.Context, firstName string, lastName string) (string, error)
+  generateCompanyAvatar(ctx context.Context, companyName string) (string, error)
 }
 
 type appSvc struct {
-  csvc      CSvc
-  usvc      USvc
-  wsvc      WSvc
-  lsvc      LSvc
-  tfsvc     TFSvc
-  trsvc     TRSvc
-  isvc      ISvc
+  csvc            CSvc
+  usvc            USvc
+  wsvc            WSvc
+  lsvc            LSvc
+  tfsvc           TFSvc
+  trsvc           TRSvc
+  isvc            ISvc
   
-  avatarsvc avatar.AvatarService
-  s3svc     s3.S3Service
+  avatarsvc       avatar.AvatarService
+  s3svc           s3.S3Service
 
-  tokensvc  auth.TokenService
-  oauthsvc  auth.OAuthService
+  tokensvc        TokenService
+  refreshTokenSvc RefreshTokenService
+  oauthsvc        OAuthService
 
-  pub       events.PubSubPublisher
-  uact      repos.UserActionRepo
+  pub             events.PubSubPublisher
+  uact            repos.UserActionRepo
 
-  parsersvc ParserService
+  parsersvc       ParserService
 }
 
-func NewAppSvc(csvc: CSvc, usvc: USvc, wsvc: WSvc, lsvc: LSvc, tfsvc: TFSvc, trsvc: TRSvc, isvc: ISvc, avatarsvc: avatar.AvatarService, s3svc: s3.S3Service, tokensvc: auth.TokenService, oauthsvc: auth.OAuthService, pub: events.PubSubPublisher, uact repos.UserActionRepo, parsersvc ParserService) AppSvc {
-  return &appSvc{csvc: csvc, usvc: usvc, wsvc: wsvc, lsvc: lsvc, tfsvc: tfsvc, trsvc: trsvc, isvc: isvc, avatarsvc: avatarsvc, s3svc: s3svc, tokensvc: tokensvc, oauthsvc: oauthsvc, pub: pub, uact: uact, parsersvc: parsersvc}
+func NewAppSvc(csvc CSvc, usvc USvc, wsvc WSvc, lsvc LSvc, tfsvc TFSvc, trsvc TRSvc, isvc ISvc, avatarsvc avatar.AvatarService, s3svc s3.S3Service, tokensvc TokenService, refreshTokenSvc RefreshTokenService, oauthsvc auth.OAuthService, pub events.PubSubPublisher, uact repos.UserActionRepo, parsersvc ParserService) AppSvc {
+  return &appSvc{csvc: csvc, usvc: usvc, wsvc: wsvc, lsvc: lsvc, tfsvc: tfsvc, trsvc: trsvc, isvc: isvc, avatarsvc: avatarsvc, s3svc: s3svc, tokensvc: tokensvc, refreshTokenSvc: refreshTokenSvc, oauthsvc: oauthsvc, pub: pub, uact: uact, parsersvc: parsersvc}
 }
 
-func (s *appSvc) RegisterUserLocal(ctx context.Context, email, password, firstName, lastName string, createCompanyName string, companyID uuid.UUID) (*models.User, string, error) {
+func (s *appSvc) RegisterUserLocal(ctx context.Context, email, password, firstName, lastName string, createCompanyName string, companyID uuid.UUID) (*models.User, string, string, error) {
   email = strings.TrimSpace(email)
   if email == "" || password == "" || firstName == "" || lastName == "" {
-    return nil, "", fmt.Errorf("missing required fields for registration")
+    return nil, "", "", fmt.Errorf("missing required fields for registration")
   }
   existing, err := s.usvc.GetUserByEmail(email)
   if err == nil && existing != nil {
-    return nil, "", fmt.Errorf("email already in use")
+    return nil, "", "", fmt.Errorf("email already in use")
   }
   var ncID *uuid.UUID
   if createCompanyName != "" {
     avatarURL, err := s.generateCompanyAvatar(ctx, createCompanyName)
     if err != nil {
-      return nil, "", fmt.Errorf("Failed to generate company avatar: %w", err)
+      return nil, "", "", fmt.Errorf("Failed to generate company avatar: %w", err)
     }
     newCo := models.Company{
       Name:       createCompanyName,
@@ -127,14 +129,14 @@ func (s *appSvc) RegisterUserLocal(ctx context.Context, email, password, firstNa
     }
     createdCo, err := s.csvc.CreateCompany(newCo)
     if err != nil {
-      return nil, "", fmt.Errorf("failed to create new company: %w", err)
+      return nil, "", "", fmt.Errorf("failed to create new company: %w", err)
     }
     ncID = &createdCo.IDkcreatedCo.ID
     _ = s.pub.PublishCompanyEvent(createdCo.ID, "COMPANY_CREATED", map[string]interface{}{"company_name": createCompanyName})
   }
   hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
   if err != nil {
-    return nil, "", fmt.Errorf("failed to hash password: %w", err)
+    return nil, "", "", fmt.Errorf("failed to hash password: %w", err)
   }
   userAvatar, err := s.generateUserAvatar(ctx, firstName, lastName)
   if err != nil {
@@ -146,35 +148,43 @@ func (s *appSvc) RegisterUserLocal(ctx context.Context, email, password, firstNa
   }
   createdUser, err := s.usvc.CreateUser(u)
   if err != nil {
-    return nil, "", fmt.Errorf("failed to create user: %w", err)
+    return nil, "", "", fmt.Errorf("failed to create user: %w", err)
   }
-  token, err := s.tokensvc.GenerateToken(createdUser.ID, createdUser.Email)
+  accesstoken, err := s.tokensvc.GenerateToken(createdUser.ID, createdUser.Email)
   if err != nil {
-    return nil, "", fmt.Errorf("failed to generate JWT: %w", err)
+    return nil, "", "", fmt.Errorf("failed to generate JWT: %w", err)
+  }
+  refreshToken, err := s.refreshTokenSvc.GenerateRefreshToken(ctx, createdUser.ID)
+  if err != nil {
+    return nil, "", "", fmt.Errorf("failed to generate refresh token: %w", err)
   }
   _ = s.pub.PublishCompanyEvent(createdUser.CompanyID, "USER_REGISTERED", map[string]interface{}{"user_id": createdUser.ID, "email": createdUser.Email, "company_id": createdUser.CompanyID})
-  return createdUser, token, nil
+  return createdUser, accesstoken, refreshToken, nil
 }
 
-func (s *appSvc) LoginUserLocal(ctx context.Context, email, password string) (*models.User, string, error) {
+func (s *appSvc) LoginUserLocal(ctx context.Context, email, password string) (*models.User, string, string, error) {
   if email == "" || password == "" {
-    return nil, "", fmt.Errorf("missing email or password")
+    return nil, "", "", fmt.Errorf("missing email or password")
   }
   user, err := s.usvc.GetUserByEmail(email)
   if err != nil || user == nil {
-    return nil, "", errors.New("Invalid credentials")
+    return nil, "", "", errors.New("Invalid credentials")
   }
   if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-    return nil, "", errors.New("Invalid credentials")
+    return nil, "", "", errors.New("Invalid credentials")
   }
-  token, err := s.tokenService.GenerateToken(user.ID, user.Email)
+  accessToken, err := s.tokensvc.GenerateToken(user.ID, user.Email)
   if err != nil {
-    return nil, "", err
+    return nil, "", "", err
+  }
+  refreshToken, err := s.refreshTokenSvc.GenerateRefreshToken(ctx, user.ID)
+  if err != nil {
+    return nil, "", "", err
   }
   _ = s.pub.PublishCompanyEvent(user.CompanyID, "USER_LOGIN", map[string]interface{}{"user_id": user.ID, "email": user.Email})
   _ = s.pub.PublishUserEvent(user.ID, "USER_LOGIN", map[string]interface{}{"user_id": user.ID, "email": user.Email})
   
-  return user, token, nil
+  return user, accesstoken, refreshToken, nil
 }
 
 func (s *appSvc) LoginWithGoogle(ctx context.Context, code, state string) (*models.User, string, error) {
@@ -190,6 +200,29 @@ func (s *appSvc) LoginWithGoogle(ctx context.Context, code, state string) (*mode
   _ = s.pub.PublishUserEvent(user.ID, "USER_LOGIN", map[string]interface{}{"user_id": user.ID, "email": user.Email})
   
   return user, token, nil
+}
+
+func (s *appSvc) LogoutUser(ctx context.Context, userID uuid.UUID) error {
+  err := s.refreshTokenSvc.InvalidateRefreshToken(ctx, userID)
+  if err != nil {
+    return fmt.Errorf("failed to invalidate refresh token: %w", err)
+  }
+  return nil
+}
+
+func (s *appSvc) RefreshTokens(ctx context.Context, userID uuid.UUID, refreshToken string) (string, string, error) {
+  if err := s.refreshTokenSvc.ValidateRefreshToken(ctx, userID, refreshToken); err != nil {
+    return "", "", fmt.Errorf("invalid refresh token: %w", err)
+  }
+  user, err := s.usvc.GetUserByID(userID)
+  if err != nil {
+    return "", "", fmt.Errorf("user not found: %w", err)
+  }
+  newAccessToken, err := s.tokensvc.GenerateAccessToken(user.ID, user.Email)
+  if err != nil {
+    return "", "", err
+  }
+  return newAccessToken, refreshToken, nil
 }
 
 func (s *appSvc) CreateCompany(ctx context.Context, name string, generateAvatar bool) (*models.Company, error) {

@@ -21,7 +21,6 @@ import (
 	"github.com/go-redis/redis/v8"
 
 	// local imports
-	"github.com/yungbote/slotter/backend/services/database/internal/auth"
 	"github.com/yungbote/slotter/backend/services/database/internal/events"
 	"github.com/yungbote/slotter/backend/services/database/internal/handlers"
 	"github.com/yungbote/slotter/backend/services/database/internal/middleware"
@@ -89,6 +88,10 @@ func main() {
 	// -------------------------------------------------------------------------
 	// 3. Connect to Redis
 	// -------------------------------------------------------------------------
+	redisAddr := os.Getenv("REDIS_ADDR")
+	if redisAddr == "" {
+		log.Fatal("Missing REDIS_ADDR")
+	}
 	// We'll use the standard redis client for your Pub/Sub:
 	rdb := redis.NewClient(&redis.Options{
 		Addr: redisAddr,
@@ -124,16 +127,24 @@ func main() {
 	}
 
 	// Token Service
-	tokenSvc, err := auth.NewTokenService()
+	tokenSvc, err := services.NewTokenService()
 	if err != nil {
 		log.Fatalf("failed to init tokenService: %v", err)
 	}
+
+	refreshTokenSvc, err := services.NewRefreshTokenService(rdb)
+	if err != nil {
+		log.Fatalf("cannot init refreshTokenService: %v", err)
+	}
+
+	oauthSvc, err := services.NewOAuthService(..., userSvc)
 
 	// S3 Service
 	s3Svc, err := s3.NewS3Service()
 	if err != nil {
 		log.Fatalf("failed to init s3Service: %v", err)
 	}
+	avatarSvc := avatar.NewAvatarService(s3Svc)
 
 	// Build core domain services
 	userSvc := services.NewUSvc(userRepo /* pass more if needed... */)
@@ -151,7 +162,7 @@ func main() {
 		GoogleSecret:    os.Getenv("GOOGLE_CLIENT_SECRET"),
 		RedirectURL:     os.Getenv("GOOGLE_REDIRECT_URL"),
 	}
-	oauthService, err := auth.NewOAuthService(oauthCfg, userSvc)
+	oauthService, err := services.NewOAuthService(oauthCfg, userSvc)
 	if err != nil {
 		log.Printf("Warning: failed to init OAuthService, Google login may not work: %v", err)
 	}
@@ -171,13 +182,13 @@ func main() {
 		avatarSvc,
 		s3Svc,
 		tokenSvc,
-		oauthService,
+		refreshTokenSvc,
+		oauthSvc,
 		pub,
 		userActionRepo,
 		parserSvc,
 	)
 
-	// (Optional) AuthService if you want a dedicated interface, but appSvc covers it
 
 	// -------------------------------------------------------------------------
 	// 6. Setup Gin + Middleware

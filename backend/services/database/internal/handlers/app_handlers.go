@@ -101,7 +101,7 @@ func (h *AppHandler) RegisterUserLocal(c *gin.Context) {
 		return
 	}
 
-	user, token, err := h.appSvc.RegisterUserLocal(
+	user, accessToken, refreshToken, err := h.appSvc.RegisterUserLocal(
 		c.Request.Context(),
 		body.Email,
 		body.Password,
@@ -113,7 +113,7 @@ func (h *AppHandler) RegisterUserLocal(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"user": user, "token": token})
+	c.JSON(http.StatusOK, gin.H{"user": user, "access_token": accessToken, "refresh_token": refreshToken})
 }
 
 // LoginUserLocal handles POST /login
@@ -128,12 +128,12 @@ func (h *AppHandler) LoginUserLocal(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
 	}
-	user, token, err := h.appSvc.LoginUserLocal(c.Request.Context(), body.Email, body.Password)
+	user, accessToken, refreshToken, err := h.appSvc.LoginUserLocal(c.Request.Context(), body.Email, body.Password)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"user": user, "token": token})
+	c.JSON(http.StatusOK, gin.H{"user": user, "access_token": accessToken, "refresh_token": refreshToken})
 }
 
 // LogoutUser handles POST /logout
@@ -146,10 +146,34 @@ func (h *AppHandler) LogoutUser(c *gin.Context) {
 		return
 	}
 	userID := userIDVal.(uuid.UUID)
+	err := h.appSvc.LogoutUser(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusInternalSeverError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "logged out"})
+}
 
-	// If your appSvc.LogoutUser simply does nothing or invalidates tokens, you can do:
-	h.appSvc.LogoutUser()
-	c.JSON(http.StatusOK, gin.H{"message": "logged out user", "user_id": userID})
+func (h *AppHandler) RefreshToken(c *gin.Context) {
+	var body struct {
+		UserID				string			`json:"user_id"`
+		RefreshToken	string			`json:"refresh_token"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+	uid, err := uuid.Parse(body.UserID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user_id"})
+		return
+	}
+	newAccessToken, newRefreshToken, err := h.appSvc.RefreshTokens(c.Request.Context(), uid, body.RefreshToken)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"access_token": newAccessToken, "refresh_token": newRefreshToken})
 }
 
 // LoginWithGoogle handles POST /login/google (or GET with code & state).

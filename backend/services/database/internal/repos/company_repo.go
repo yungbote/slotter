@@ -6,7 +6,6 @@ import (
   "gorm.io/gorm"
   "github.com/google/uuid"
   "github.com/yungbote/slotter/backend/services/database/internal/models"
-  customErr "github.com/yungbote/slotter/backend/services/database/internal/errors"
 )
 
 type CRepo interface {

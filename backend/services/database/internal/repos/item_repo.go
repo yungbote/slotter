@@ -1,6 +1,7 @@
 package repos
 
 import (
+  "time"
   "fmt"
 
   "gorm.io/gorm"
@@ -28,7 +29,7 @@ type IRepo interface {
     GetByNameAndCompanyID(companyID uuid.UUID, name string) (*models.Item, error)
     Delete(itemID uuid.UUID) error
     //GET'S BY TRANSACTIONRECORDID
-    GetByTransactionRecordID(companyID, warehouseID, recordID uuid.UUID) (*models.Item, error)
+    GetByTransactionRecordID(recordID uuid.UUID) (*models.Item, error)
     //LinkItemToLocation
     LinkToLocation(itemID, locationID uuid.UUID) error
     UnlinkFromLocation(itemID, locationID uuid.UUID) error
@@ -41,7 +42,7 @@ type IRepo interface {
     //LINK & UNLINK ITEM TO TRANSACTIONFILE
     LinkToTransactionFile(itemID, fileID uuid.UUID) error
     UnlinkFromTransactionFile(itemID, fileID uuid.UUID) error
-    ListItems(f ItemsFilter) ([]*models.Items, error)
+    ListItems(f ItemFilter) ([]*models.Item, error)
 }
 
 type iRepo struct {
@@ -236,6 +237,15 @@ func (r *iRepo) UnlinkFromTransactionFile(itemID, fileID uuid.UUID) error {
         return fmt.Errorf("Failed to unlink transaction file (ID %s) from item (ID %s): %w", fileID, itemID, err)
     }
     return nil
+}
+
+
+func (r *iRepo) GetByNameAndCompanyID(companyID uuid.UUID, name string) (*models.Item, error) {
+    var item models.Item
+    if err := r.db.Where("company_id = ? AND name = ?", companyID, name).First(&item).Error; err != nil {
+        return nil, fmt.Errorf("could not find item with name=%s in company_id=%s: %w", name, companyID, err)
+    }
+    return &item, nil
 }
 
 func (r *iRepo) ListItems(f ItemFilter) ([]*models.Item, error) {

@@ -1,6 +1,7 @@
 package repos
 
 import (
+  "time"
   "fmt"
 
   "github.com/google/uuid"
@@ -163,7 +164,7 @@ func (r *tfRepo) UnlinkFromItem(fileID, itemID uuid.UUID) error {
     return nil
 }
 
-func (t *tfRepo) ListTransactionFiles(f TransactionFileFilter) ([]*models.TransactionFile, error) {
+func (r *tfRepo) ListTransactionFiles(f TransactionFileFilter) ([]*models.TransactionFile, error) {
     dbq := r.db.Model(&models.TransactionFile{}).Select("DISTINCT transaction_files.*")
     if f.CompanyID != uuid.Nil {
         dbq = dbq.Where("transaction_files.company_id = ?", f.CompanyID)
@@ -196,23 +197,6 @@ func (t *tfRepo) ListTransactionFiles(f TransactionFileFilter) ([]*models.Transa
         return nil, err
     }
     return files, nil
-}
-
-func applySorting(dbq *gorm.DB, sortField, sortDir string, allowed []string) *gorm.DB {
-    found := false
-    for _, f := range allowed {
-        if f == sortField {
-            found = true
-            break
-        }
-    }
-    if !found {
-        sortField = "created_at"
-    }
-    if sortDir != "asc" && sortDir != "ASC" {
-        sortDir = "DESC"
-    }
-    return dbq.Order(fmt.Sprintf("%s %s", sortField, sortDir))
 }
 
 

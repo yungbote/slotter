@@ -7,9 +7,7 @@ import (
   "net/http"
   "os"
   "github.com/google/uuid"
-  "github.com/yungbote/slotter/backend/services/database/internal/models"
-  "github.com/yungbote/slotter/backend/services/database/internal/services"
-  s3serive "github.com/yungbote/slotter/backend/services/database/internal/services/s3"
+  s3service "github.com/yungbote/slotter/backend/services/database/internal/services/s3"
 )
 
 type AvatarService interface {

@@ -121,7 +121,7 @@ type Item struct {
 // ----------------------------------------------------
 // This table captures user actions for auditing or analytics.
 type UserAction struct {
-  ID          uuid              `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
+  ID          uuid.UUID         `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
   UserID      *uuid.UUID        `gorm:"not null;index"`
   User        *User             `gorm:"constraint:OnDelete:CASCADE"` // optional reference to load user details
 

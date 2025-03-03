@@ -1,6 +1,7 @@
 package repos
 
 import (
+  "time"
   "fmt"
 
   "gorm.io/gorm"
@@ -140,20 +141,4 @@ func (r *wRepo) ListWarehouses(f WarehouseFilter) ([]*models.Warehouse, error) {
     return warehouses, nil
 }
 
-func applySorting(dbq *gorm.DB, sortField, sortDir string, allowed []string) *gorm.DB {
-    found := false
-    for _, f := range allowed {
-        if f == sortField {
-            found = true
-            break
-        }
-    }
-    if !found {
-        sortField = "created_at"
-    }
-    if sortDir != "asc" && sortDir != "ASC" {
-        sortDir = "DESC"
-    }
-    return dbq.Order(fmt.Sprintf("%s %s", sortField, sortDir))
-}
 

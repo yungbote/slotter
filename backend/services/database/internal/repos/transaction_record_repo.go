@@ -1,6 +1,7 @@
 package repos
 
 import (
+  "time"
   "fmt"
 
   "gorm.io/gorm"
@@ -132,19 +133,4 @@ func (r *trRepo) ListTransactionRecords(f TransactionRecordFilter) ([]*models.Tr
   return recs, nil
 }
 
-func applySorting(dbq *gorm.DB, sortField, sortDir string, allowedFields []string) *gorm.DB {
-  found := false
-  for _, af := range allowedFields {
-    if af == sortField {
-      found = true
-      break
-    }
-  }
-  if !found {
-    sortField = "created_at"
-  }
-  if sortDir != "asc" && sortDir != "ASC" {
-    sortDir = "DESC"
-  }
-  return dbq.Order(fmt.Sprintf("%s %s", sortField, sortDir))
-}
+

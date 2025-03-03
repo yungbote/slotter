@@ -27,7 +27,7 @@ type USvc interface {
 type uSvc struct {
   repo        repos.UserRepo
   useractionRepo  repos.UserActionRepo
-  pub             events.PubSubPublisher,
+  pub             events.PubSubPublisher
 }
 
 func NewUSvc(

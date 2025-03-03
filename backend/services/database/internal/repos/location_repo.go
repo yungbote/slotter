@@ -1,6 +1,7 @@
 package repos
 
 import (
+  "time"
   "fmt"
 
   "gorm.io/gorm"
@@ -97,75 +98,7 @@ func (r *lRepo) Delete(locationID uuid.UUID) error {
   }
   return nil
 }
-
-func (r *lRepo) ListByWarehouseID(warehouseID uuid.UUID, sortField, sortDir string) ([]*models.Location, error) {
-  dbq := r.db.Model(&models.Location{}).
-    Where("warehouse_id = ?", warehouseID)
-  dbq = applySorting(dbq, sortField, sortDir, []string{"location_path", "location_name_path", "created_at"})
-  var locs []*models.Location
-  if err := dbq.Find(&locs).Error; err != nil {
-    return nil, Errorf("Failed to list locations by warehouse: %w", err)
-  }
-  return locs, nil
-}
-
-func (r *lRepo) CountByWarehouseID(warehouseID uuid.UUID) (int64, error) {
-  var count int64
-  if err := r.db.Model(&models.Location{}).
-    Where("warehouse_id = ?", warehouseID).
-    Count(&count).Error; err != nil {
-    return 0, fmt.Errorf("Failed to count locations by warehouseID: %w", err)
-  }
-  return count, nil
-}
-
-func (r *lRepo) ListByTransactionFileID(fileID uuid.UUID) ([]*models.Location, error) {
-  dbq := r.db.Model(&models.Location{}).
-    Joins("JOIN transaction_file_location tfl ON tfl.location_id = locations.id").
-    Where("tfl.transaction_file_id = ?", fileID)
-  dbq = applySorting(dbq, sortField, sortDir, []string{"location_name", "location_number", "created_at"})
-  var locs []*models.Location
-  if err := dbq.Find(&locs).Error; err != nil {
-    return nil, fmt.Errorf("Failed to list locations by transaction file: %w", err)
-  }
-  return locs, nil
-}
-
-func (r *lRepo) CountByTransactionFileID(fileID uuid.UUID) (int64, error) {
-  var count int64
-  if err := r.db.Model(&models.Location{}).
-    Joins("JOIN transaction_file_location tfl ON tfl.location_id = locations.id").
-    Where("tfl.transaction_file_id = ?", fileID).
-    Count(&count).Error; err != nil {
-    return 0, fmt.Errorf("Failed to count locations by transaction file: %w", err)
-  }
-  return count, nil
-}
-
-func (r *lRepo) ListByItemID(itemID uuid.UUID, sortField, sortDir string) ([]*models.Location, error) {
-  dbq := r.db.Model(&models.Location{}).
-    Joins("JOIN item_location il ON il.location_id = locations.id").
-    Where("il.item_id = ?", itemID)
-  dbq = applySorting(dbq, sortField, sortDir, []string{"location_name", "location_number", "created_at"})
-  var locs []*models.Location
-  if err := dbq.Find(&locs).Error; err != nil {
-    return nil, fmt.Errorf("Failed to list locations by item: %w", err)
-  }
-  return locs, nil
-}
-
-func (r *lRepo) CountByItemID(itemID uuid.UUID) (int64, error) {
-  var count int64
-  if err := r.db.Model(&models.Location{}).
-    Joins("JOIN item_location il ON il.location_id = locations.id").
-    Where("il.item_id = ?", itemID).
-    Count(&count).Error; err != nil {
-    return 0, fmt.Errorf("Failed to count locations by item: %w", err)
-  }
-  return count, nil
-}
-
-func (r *lRepo) LinkToItem(locationID, itemID, uuid.UUID) error {
+func (r *lRepo) LinkToItem(locationID, itemID uuid.UUID) error {
   var loc models.Location
   if err := r.db.First(&loc, "id = ?", locationID).Error; err != nil {
     return fmt.Errorf("Failed to find location with ID '%s': %w", locationID, err)
@@ -274,20 +207,4 @@ func (r *lRepo) ListLocations(f LocationFilter) ([]*models.Location, error) {
   return locs, nil
 }
 
-func applySorting(dbq *gorm.DB, sortField, sortDir string, allowedFields []string) *gorm.DB {
-  found := false
-  for _, af := range allowedFields {
-    if af == sortField {
-      found = true
-      break
-    }
-  }
-  if !found {
-    sortField = "created_at"
-  }
-  if sortDir != "asc" && sortDir != "ASC" {
-    sortDir = "DESC"
-  }
-  return dbq.Order(fmt.Sprintf("%s %s", sortField, sortDir))
-}
 
