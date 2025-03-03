@@ -1,0 +1,69 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: my_postgres
+    environment:
+      POSTGRES_USER: bote
+      POSTGRES_PASSWORD: bote
+      POSTGRES_DB: slotterdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - my_network
+
+  redis:
+    image: redis:7
+    container_name: my_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - my_network
+
+  backend:
+    build:
+      context: .
+      dockerfile: ./backend/services/database/Dockerfile
+    container_name: my_go_backend
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      # DB
+      - DB_DSN=${DB_DSN} 
+      - REDIS_ADDR=${REDIS_ADDR}
+
+      # AWS / S3 (example placeholders)
+      - AWS_REGION=${AWS_REGION}
+      - S3_BUCKET=${S3_BUCKET}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+
+      # JWT
+      - JWT_SECRET=${JWT_SECRET}  
+      - JWT_ISSUER=${JWT_ISSUER}
+
+      # Optional
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET:${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URL=${GOOGLE_REDIRECT_URL}
+      DICEBEAR_URL: "https://api.dicebear.com"
+      GIN_MODE: "debug"
+      PORT: "8080"
+
+    networks:
+      - my_network
+    # If you want to auto-restart on crash:
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+
+networks:
+  my_network:
+    driver: bridge
