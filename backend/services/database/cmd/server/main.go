@@ -21,7 +21,7 @@ import (
 	"github.com/go-redis/redis/v8"
 
 	// local imports
-	"github.com/yungbote/slotter/backend/services/database/internal/services/auth"
+	"github.com/yungbote/slotter/backend/services/database/internal/auth"
 	"github.com/yungbote/slotter/backend/services/database/internal/events"
 	"github.com/yungbote/slotter/backend/services/database/internal/handlers"
 	"github.com/yungbote/slotter/backend/services/database/internal/middleware"

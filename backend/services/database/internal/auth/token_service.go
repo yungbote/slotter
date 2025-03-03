@@ -42,7 +42,7 @@ func (t *tokenService) GenerateToken(userID uuid.UUID, email string) (string, er
     ExpiresAt:      jwt.NewNumericDate(now.Add(time.Hour * 24 * 7)),
     IssuedAt:       jwt.NewNumericDate(now),
   }
-  token := jwt.NewWithClaims(jwt.SigningMethodHS246, claims)
+  token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
   signed, err := token.SignedString([]byte(t.secretKey))
   if err != nil {
     return "", err

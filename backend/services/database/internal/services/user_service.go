@@ -17,6 +17,7 @@ type USvc interface {
   UpdateUserRole(userID uuid.UUID, newRole string) error
   UpdateUserAvatarURL(userID uuid.UUID, newAvatarURL string) error
   GetUserByID(userID uuid.UUID) (*models.User, error)
+  GetUserByEmail(email string) (*models.User, error)
   DeleteUser(userID uuid.UUID) error
   
   ListUsers(f repos.UserFilter) ([]*models.User, error)
@@ -105,6 +106,13 @@ func (s *uSvc) GetUserByID(userID uuid.UUID) (*models.User, error) {
     return nil, fmt.Errorf("failed to get user by id: %w", err)
   }
   return user, nil
+}
+
+func (s *uSvc) GetUserByEmail(email string) (*models.User, error) {
+  if email == "" {
+    return nil, fmt.Errorf("email is empty")
+  }
+  return s.repo.GetByEmail(email)
 }
 
 func (s *uSvc) GetUserByEmail(userEmail string) (*models.User, error) {
