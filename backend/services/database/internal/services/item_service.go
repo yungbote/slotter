@@ -54,7 +54,7 @@ func (s *iSvc) UpdateItemName(itemID uuid.UUID, newName string) error {
     return fmt.Errorf("new name cannot be empty")
   }
   if err := s.repo.UpdateName(itemID, newName); err != nil {
-    return ftm.Errorf("Failed to update item name: %w", err)
+    return fmt.Errorf("Failed to update item name: %w", err)
   }
   return nil
 }
@@ -115,7 +115,7 @@ func (s *iSvc) UnlinkFromWarehouse(itemID, warehouseID uuid.UUID) error {
     return fmt.Errorf("Invalid ItemID")
   }
   if warehouseID == uuid.Nil {
-    return fmt.Errrof("Invalid WarehouseID")
+    return fmt.Errorf("Invalid WarehouseID")
   }
   return s.repo.UnlinkFromWarehouse(itemID, warehouseID)
 }

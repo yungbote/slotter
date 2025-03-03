@@ -33,7 +33,7 @@ func (s *wSvc) CreateWarehouse(warehouse models.Warehouse) (*models.Warehouse, e
   if warehouse.Name == "" {
     return nil, fmt.Errorf("warehouse name is empty")
   }
-  if warehouse.CompanyID == nil || *w.CompanyID == uuid.Nil {
+  if warehouse.CompanyID == nil || *warehouse.CompanyID == uuid.Nil {
     return nil, fmt.Errorf("warehouse must have a valid company ID")
   }
   created, err := s.repo.Create(warehouse)
@@ -92,7 +92,7 @@ func (s *wSvc) UnlinkFromItem(warehouseID, itemID uuid.UUID) error {
   if itemID == uuid.Nil {
     return fmt.Errorf("Invalid itemID")
   }
-  return s.repo.UnlinkFromItem
+  return s.repo.UnlinkFromItem(warehouseID, itemID)
 }
 
 func (s *wSvc) ListWarehouses(f repos.WarehouseFilter) ([]*models.Warehouse, error) {

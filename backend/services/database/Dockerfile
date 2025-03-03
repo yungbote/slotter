@@ -1,16 +1,16 @@
-# syntax=docker/dockerfile:1
+# Dockerfile at ./backend/services/database/Dockerfile
 
-FROM golang:1.20-alpine AS builder
+FROM golang:1.23-alpine AS builder
 
 WORKDIR /app
 
 # Install Git, CA certificates if needed
 RUN apk update && apk add --no-cache git ca-certificates && update-ca-certificates
 
-COPY go.mod go.sum ./
+COPY backend/services/database/go.mod backend/services/database/go.sum ./
 RUN go mod download
 
-COPY . ./
+COPY backend/services/database/ ./
 
 # Build the binary
 RUN CGO_ENABLED=0 go build -o server ./cmd/server/main.go

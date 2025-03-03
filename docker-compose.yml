@@ -35,26 +35,28 @@ services:
       - redis
     environment:
       # DB
-      - DB_DSN=${DB_DSN} 
+      - DB_DSN=${DB_DSN}
       - REDIS_ADDR=${REDIS_ADDR}
 
-      # AWS / S3 (example placeholders)
+      # AWS / S3
       - AWS_REGION=${AWS_REGION}
       - S3_BUCKET=${S3_BUCKET}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
 
       # JWT
-      - JWT_SECRET=${JWT_SECRET}  
+      - JWT_SECRET=${JWT_SECRET}
       - JWT_ISSUER=${JWT_ISSUER}
 
-      # Optional
+      # Google OAuth
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - GOOGLE_CLIENT_SECRET:${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - GOOGLE_REDIRECT_URL=${GOOGLE_REDIRECT_URL}
-      DICEBEAR_URL: "https://api.dicebear.com"
-      GIN_MODE: "debug"
-      PORT: "8080"
+
+      # Additional
+      - DICEBEAR_URL=https://api.dicebear.com
+      - GIN_MODE=debug
+      - PORT=8080
 
     networks:
       - my_network

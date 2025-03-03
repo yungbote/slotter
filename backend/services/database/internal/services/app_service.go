@@ -129,7 +129,7 @@ func (s *appSvc) RegisterUserLocal(ctx context.Context, email, password, firstNa
     if err != nil {
       return nil, "", fmt.Errorf("failed to create new company: %w", err)
     }
-    ncID = &createdCo.IDk
+    ncID = &createdCo.IDkcreatedCo.ID
     _ = s.pub.PublishCompanyEvent(createdCo.ID, "COMPANY_CREATED", map[string]interface{}{"company_name": createCompanyName})
   }
   hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -384,7 +384,7 @@ func (s *appSvc) GetLocationByPath(ctx context.Context, userID, warehouseID uuid
   if err != nil {
     return nil, err
   }
-  loc, err := s.lsvc.GetLocationByPath(*(&warehouseID), *(&warehouseID), locationPath)
+  loc, err := s.lsvc.GetLocationByPath(*user.CompanyID, *(&warehouseID), locationPath)
   if err != nil {
     return nil, err
   }

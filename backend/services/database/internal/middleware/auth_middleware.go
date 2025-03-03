@@ -6,7 +6,7 @@ import (
   "github.com/gin-gonic/gin"
   "github.com/golang-jwt/jwt/v4"
   "github.com/google/uuid"
-  authsvc "github.com/yungbote/slotter/backend/services/database/services/auth"
+  authsvc "github.com/yungbote/slotter/backend/services/database/internal/auth"
 )
 
 func AuthMiddleware(tokenService authsvc.TokenService) gin.HandlerFunc {

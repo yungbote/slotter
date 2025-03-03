@@ -121,7 +121,7 @@ func (s *lSvc) LinkToTransactionFile(locationID, fileID uuid.UUID) error {
 
 func (s *lSvc) UnlinkFromTransactionFile(locationID, fileID uuid.UUID) error {
   if locationID == uuid.Nil {
-    return fmt.Errrof("Invalid LocationID")
+    return fmt.Errorf("Invalid LocationID")
   }
   if fileID == uuid.Nil {
     return fmt.Errorf("Invalid FileID")
